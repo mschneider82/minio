@@ -380,6 +380,7 @@ type notifier struct {
 	MQTT          map[string]target.MQTTArgs          `json:"mqtt"`
 	MySQL         map[string]target.MySQLArgs         `json:"mysql"`
 	NATS          map[string]target.NATSArgs          `json:"nats"`
+	NSQ           map[string]target.NSQArgs           `json:"nsq"`
 	PostgreSQL    map[string]target.PostgreSQLArgs    `json:"postgresql"`
 	Redis         map[string]target.RedisArgs         `json:"redis"`
 	Webhook       map[string]target.WebhookArgs       `json:"webhook"`

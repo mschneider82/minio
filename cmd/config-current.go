@@ -210,6 +210,12 @@ func (s *serverConfig) Validate() error {
 		}
 	}
 
+	for _, v := range s.Notify.NSQ {
+		if err := v.Validate(); err != nil {
+			return fmt.Errorf("nsq: %s", err)
+		}
+	}
+
 	for _, v := range s.Notify.PostgreSQL {
 		if err := v.Validate(); err != nil {
 			return fmt.Errorf("postgreSQL: %s", err)
