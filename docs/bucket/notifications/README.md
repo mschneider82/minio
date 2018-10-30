@@ -17,6 +17,7 @@ Bucket events can be published to the following targets:
 | [`AMQP`](#AMQP) | [`Redis`](#Redis) | [`MySQL`](#MySQL) |
 | [`MQTT`](#MQTT) | [`NATS`](#NATS) | [`Apache Kafka`](#apache-kafka) |
 | [`Elasticsearch`](#Elasticsearch) | [`PostgreSQL`](#PostgreSQL) | [`Webhooks`](#webhooks) |
+| [`NSQ`](#NSQ) | | |
 
 ## Prerequisites
 
@@ -1005,6 +1006,73 @@ Wait a few moments, then check the bucket’s contents with mc ls — you wi
 ```
 mc ls myminio/images-thumbnail
 [2017-02-08 11:39:40 IST]   992B images-thumbnail.jpg
+```
+
+<a name="NSQ"></a>
+## Publish Minio events to NSQ
+
+Install an NSQ Daemon from [here](https://nsq.io/).
+
+### Step 1: Add NSQ endpoint to Minio
+
+The Minio server configuration file is stored on the backend in json format. The NSQ configuration is located in the `nsq` key under the `notify` top-level key. Create a configuration key-value pair here for your NSQ instance. The key is a name for your NSQ endpoint, and the value is a collection of key-value parameters.
+
+An example configuration for NSQ is shown below:
+
+```json
+"nsq": {
+    "1": {
+        "enable": true,
+        "nsqdAddress": "127.0.0.1:4530",
+        "topic": "minio",
+        "tls": {
+            "enable": false,       
+            "skipVerify": true
+        }
+    }
+}
+```
+To update the configuration, use `mc admin config get` command to get the current configuration file for the minio deployment in json format, and save it locally.
+```sh
+$ mc admin config get myminio/ > /tmp/myconfig
+```
+After updating the NSQ configuration in /tmp/myconfig , use `mc admin config set` command to update the configuration for the deployment.Restart the Minio server to put the changes into effect. The server will print a line like `SQS ARNs: arn:minio:sqs::1:nsq` at start-up if there were no errors.
+```sh
+$ mc admin config set myminio < /tmp/myconfig
+```
+
+Note that, you can add as many NSQ daemon endpoint configurations as needed by providing an identifier (like "1" in the example above) for the NSQ instance and an object of per-server configuration parameters.
+
+
+### Step 2: Enable bucket notification using Minio client
+
+We will enable bucket event notification to trigger whenever a JPEG image is uploaded or deleted ``images`` bucket on ``myminio`` server. Here ARN value is ``arn:minio:sqs::1:nsq``.
+
+```
+mc mb myminio/images
+mc events add  myminio/images arn:minio:sqs::1:nsq --suffix .jpg
+mc events list myminio/images
+arn:minio:sqs::1:nsq s3:ObjectCreated:*,s3:ObjectRemoved:* Filter: suffix=”.jpg”
+```
+
+### Step 3: Test on NSQ
+
+The simplest test is to download `nsq_tail` from [nsq github](https://github.com/nsqio/nsq/releases)
+
+```
+./nsq_tail -nsqd-tcp-address 127.0.0.1:4150 -topic minio
+```
+
+Open another terminal and upload a JPEG image into ``images`` bucket.
+
+```
+mc cp myphoto.jpg myminio/images
+```
+
+You should receive the following event notification via NSQ once the upload completes.
+
+```
+{“Records”:[{“eventVersion”:”2.0",”eventSource”:”aws:s3",”awsRegion”:”",”eventTime”:”2016–09–08T22:34:38.226Z”,”eventName”:”s3:ObjectCreated:Put”,”userIdentity”:{“principalId”:”minio”},”requestParameters”:{“sourceIPAddress”:”10.1.10.150:44576"},”responseElements”:{},”s3":{“s3SchemaVersion”:”1.0",”configurationId”:”Config”,”bucket”:{“name”:”images”,”ownerIdentity”:{“principalId”:”minio”},”arn”:”arn:aws:s3:::images”},”object”:{“key”:”myphoto.jpg”,”size”:200436,”sequencer”:”147279EAF9F40933"}}}],”level”:”info”,”msg”:””,”time”:”2016–09–08T15:34:38–07:00"}
 ```
 
 
