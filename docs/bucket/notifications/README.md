@@ -1023,7 +1023,7 @@ An example configuration for NSQ is shown below:
 "nsq": {
     "1": {
         "enable": true,
-        "nsqdAddress": "127.0.0.1:4530",
+        "nsqdAddress": "127.0.0.1:4150",
         "topic": "minio",
         "tls": {
             "enable": false,       
