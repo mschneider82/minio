@@ -1012,7 +1012,7 @@ mc ls myminio/images-thumbnail
 ## Publish Minio events to NSQ
 
 Install an NSQ Daemon from [here](https://nsq.io/). Or use the following Docker
-command for starting and nsqd:
+command for starting an nsq daemon:
 
 ```
 docker run --rm -p 4150-4151:4150-4151 nsqio/nsq /nsqd
